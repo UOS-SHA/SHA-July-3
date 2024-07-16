@@ -1,15 +1,60 @@
-from flask import Flask, request, jsonify
+from flask import Flask
 import pymysql
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 
 app = Flask(__name__)
 db = pymysql.connect(host='127.0.0.1', user='root', password='shajuly3', db='bulletboard', charset='utf8')
 cursor = db.cursor()
+jwt = JWTManager(app)
 
 
+
+##############################################################################################################
+# Main page
 @app.route('/')
+@jwt_required(optional=True)
 def default():
-    return "<h1 style='color:blue'>Hello, world!</h1>"
+    try:
+        identity = get_jwt_identity()
+    except:
+        identity = None
 
+    ret = {
+            "new_posts": [],
+            "top_posts": [],
+            "logged_in_user_id": 0,
+            }
+
+    if identity:
+        ret['logged_in_user_id'] = identity['id']
+    
+    cursor.execute('SELECT user_id, title, creation_time, likes, id FROM posts ORDER BY id DESC LIMIT 10;')
+    posts = cursor.fetchall()
+    for post in posts:
+        cursor.execute(f'SELECT username FROM users WHERE id={post[0]};')
+        ret['new_posts'].append({
+            'user_id': post[0],
+            'username': cursor.fetchone(),
+            'title': post[1],
+            'creation_time': post[2],
+            'likes': post[3],
+            'id': post[4]
+            })
+    
+    cursor.execute('SELECT user_id, title, likes, id FROM posts WHERE likes >= 5 ORDER BY likes DESC, id DESC LIMIT 5;')
+    posts = cursor.fetchall()
+    for post in posts:
+        cursor.execute(f'SELECT username FROM users WHERE id={post[0]};')
+        ret['top_posts'].append({
+            'user_id': post[0],
+            'username': cursor.fetchone(),
+            'title': post[1],
+            'likes': post[2],
+            'id': post[3]
+            })
+
+    return ret, 200
+##############################################################################################################
 
 
 ##############################################################################################################
@@ -26,7 +71,9 @@ def return_user_view(user, posts, comments):
             'comments': []
             }
     for post in posts:
+        cursor.execute(f'SELECT id FROM posts WHERE title={post[0]};')
         ret['posts'].append({
+            'id': cursor.fetchone(),
             'title': post[0],
             'creation_time': post[1],
             'likes': post[2]
@@ -45,7 +92,6 @@ def get_posts_comments(user):
     cursor.execute(f'SELECT post_id, content, created_at FROM comments WHERE user_id={user[0]} ORDER BY id DESC LIMIT 5;')
     comments = cursor.fetchall()
     return (posts, comments)
-
 
 @app.route('/user/username/<string:username>', methods=['GET'])
 def user_by_name(username):
@@ -84,6 +130,19 @@ def add_user():
     else:
         cursor.execute(f'INSERT INTO users (username, school_year, pw_hash, additional_info) VALUES (\'{username}\', {school_year}, \'{pw_hash}\', \'{additional_info}\');')
     return jsonify({'message':'User added successfully.'}), 201
+
+@app.route('/user/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    username = data.get('username')
+    pw_hash = data.get('pw_hash')
+    
+    cursor.execute('SELECT pw_hash, id FROM users WHERE username=\'{username}\';')
+    data = cursor.fetchone()
+
+    if data and pw_hash == data[0]:
+        return jsonify({'token': create_access_token(identity={'id': data[1]})}), 201
+    return jsonify({'error':'Invalid credentials.'}), 401
 ##############################################################################################################
 
 
@@ -101,14 +160,15 @@ def return_post_view(post, comments):
             'comments': []
             }
     for comment in comments:
+        cursor.execute(f'SELECT username FROM users WHERE id={comment[0]};')
         ret['comments'].append({
             'user_id': comment[0],
+            'username': cursor.fetchone(),
             'content': comment[1],
             'creation_time': comment[2]
             })
     return jsonify(ret)
     
-
 def get_comments(post):
     cursor.execute(f'SELECT user_id, content, created_at FROM comments WHERE post_id={post[0]} ORDER BY id;')
     return cursor.fetchall()
