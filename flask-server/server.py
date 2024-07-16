@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request, jsonify
 import pymysql
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 
@@ -6,6 +6,13 @@ app = Flask(__name__)
 db = pymysql.connect(host='127.0.0.1', user='root', password='shajuly3', db='bulletboard', charset='utf8')
 cursor = db.cursor()
 jwt = JWTManager(app)
+
+
+##############################################################################################################
+# Utils
+def log(text):
+    print(f'[INTERNAL LOG] {text}')
+##############################################################################################################
 
 
 
@@ -53,6 +60,7 @@ def default():
             'id': post[3]
             })
 
+    log(f'1{ret}')                                          #### DEBUG
     return ret, 200
 ##############################################################################################################
 
@@ -100,6 +108,7 @@ def user_by_name(username):
     if not user:
         return {'error':'User not found.'}, 404
     posts, comments = get_posts_comments(user)
+    log(f'2{ret}')                                          #### DEBUG
     return return_user_view(user, posts, comments), 200
 
 @app.route('/user/id/<int:id>', methods=['GET'])
@@ -109,13 +118,15 @@ def user_by_id(id):
     if not user:
         return {'error':'User not found.'}, 404
     posts, comments = get_posts_comments(user)
+    log(f'3{ret}')                                          #### DEBUG
     return return_user_view(user, posts, comments), 200
 
-@app.route('/user/add', methods=['POST'])
+@app.route('/signup', methods=['POST'])
 def add_user():
     data = request.get_json()
-    print(f'User add request: {data}')
+    log(f'User add request: {data}')
     if not data:
+        log('User add request has failed')
         return jsonify({'error':'Invalid JSON data'}), 400
 
     username = data.get('username')
@@ -124,11 +135,14 @@ def add_user():
     additional_info = data.get('additional_info')
 
     if not (username and school_year and pw_hash):
+        log('User add request has failed')
         return jsonify({'error':'Missing user data.'}), 400
     if not additional_info:
         cursor.execute(f'INSERT INTO users (username, school_year, pw_hash) VALUES (\'{username}\', {school_year}, \'{pw_hash}\');')
     else:
         cursor.execute(f'INSERT INTO users (username, school_year, pw_hash, additional_info) VALUES (\'{username}\', {school_year}, \'{pw_hash}\', \'{additional_info}\');')
+
+    log('User add request was successful')
     return jsonify({'message':'User added successfully.'}), 201
 
 @app.route('/user/login', methods=['POST'])
@@ -179,6 +193,7 @@ def post(post_id):
     post = cursor.fetchone()
     if not post:
         return jsonify({'error':'Post not found.'}), 404
+    log(f'4{ret}')                                          #### DEBUG
     return return_post_view(post, get_comments(post)), 200
 
 @app.route('/post/add', methods=['POST'])
