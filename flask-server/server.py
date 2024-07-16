@@ -18,7 +18,7 @@ def log(text):
 
 ##############################################################################################################
 # Main page
-@app.route('/')
+@app.route('/api/main')
 @jwt_required(optional=True)
 def default():
     try:
@@ -29,8 +29,9 @@ def default():
     ret = {
             "new_posts": [],
             "top_posts": [],
-            "logged_in_user_id": 0,
-            }
+            "recent_comments": [],
+            "logged_in_user_id": 0
+           }
 
     if identity:
         ret['logged_in_user_id'] = identity['id']
@@ -60,7 +61,16 @@ def default():
             'id': post[3]
             })
 
-    log(f'1{ret}')                                          #### DEBUG
+    cursor.execute('SELECT id, post_id, content, user_id FROM comments ORDER BY id DESC limit 5;')
+    comments = cursor.fetchall()
+    for comment in comments:
+        cursor.execute(f'SELECT username FROM users WHERE id={comment[3]}')
+        ret['recent_comments'].append({
+            'post_id': comment[1],
+            'content': comment[2],
+            'username': cursor.fetchone()
+            })
+
     return ret, 200
 ##############################################################################################################
 
@@ -101,7 +111,7 @@ def get_posts_comments(user):
     comments = cursor.fetchall()
     return (posts, comments)
 
-@app.route('/user/username/<string:username>', methods=['GET'])
+@app.route('/api/user/username/<string:username>', methods=['GET'])
 def user_by_name(username):
     cursor.execute(f'SELECT * FROM users WHERE username=\'{username}\';')
     user = cursor.fetchone()
@@ -111,7 +121,7 @@ def user_by_name(username):
     log(f'2{ret}')                                          #### DEBUG
     return return_user_view(user, posts, comments), 200
 
-@app.route('/user/id/<int:id>', methods=['GET'])
+@app.route('/api/user/id/<int:id>', methods=['GET'])
 def user_by_id(id):
     cursor.execute(f'SELECT * FROM users WHERE id={id};')
     user = cursor.fetchone()
@@ -121,7 +131,7 @@ def user_by_id(id):
     log(f'3{ret}')                                          #### DEBUG
     return return_user_view(user, posts, comments), 200
 
-@app.route('/signup', methods=['POST'])
+@app.route('/api/signup', methods=['POST'])
 def add_user():
     data = request.get_json()
     log(f'User add request: {data}')
@@ -145,7 +155,7 @@ def add_user():
     log('User add request was successful')
     return jsonify({'message':'User added successfully.'}), 201
 
-@app.route('/user/login', methods=['POST'])
+@app.route('/api/user/login', methods=['POST'])
 def login():
     data = request.get_json()
     username = data.get('username')
@@ -187,7 +197,7 @@ def get_comments(post):
     cursor.execute(f'SELECT user_id, content, created_at FROM comments WHERE post_id={post[0]} ORDER BY id;')
     return cursor.fetchall()
 
-@app.route('/post/<int:post_id>', methods=['GET'])
+@app.route('/api/post/<int:post_id>', methods=['GET'])
 def post(post_id):
     cursor.execute(f'SELECT * FROM posts WHERE id={post_id};')
     post = cursor.fetchone()
@@ -196,7 +206,7 @@ def post(post_id):
     log(f'4{ret}')                                          #### DEBUG
     return return_post_view(post, get_comments(post)), 200
 
-@app.route('/post/add', methods=['POST'])
+@app.route('/api/post/add', methods=['POST'])
 def add_post():
     data = request.get_json()
     print(f'Post add request: {data}')

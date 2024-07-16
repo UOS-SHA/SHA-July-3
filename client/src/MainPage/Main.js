@@ -16,8 +16,7 @@ const MainPage = () => {
 	useEffect(() => {
 		const fetcher = async () => {
 			try {
-				const response = await fetch('http://127.0.0.1:5000/');
-				console.log(response);
+				const response = await fetch('/api/main');
 				const data = await response.json();
 				setData(data);
 			} catch (error) {
@@ -42,7 +41,7 @@ const MainPage = () => {
 			<NewPosts posts={data.new_posts} />
 			</div>
 			<div className="grid-item">
-			<h2>최상위 글</h2>
+			<h2>인기 글</h2>
 			<TopPosts posts={data.top_posts} />
 			</div>
 			<div className="grid-item">
