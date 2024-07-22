@@ -1,0 +1,19 @@
+.post-container {
+	margin: 10px;
+	padding: 10px;
+	border: 1px solid #ccc;
+	border-radius: 8px;
+}
+
+.comment-section {
+	margin: 10px;
+	padding: 10px;
+	border: 1px solid #ccc;
+	border-radius: 8px;
+}
+
+.comment {
+	padding: 5px;
+	border-top: 1px,solid #eee;
+	line-height: 50%;
+}

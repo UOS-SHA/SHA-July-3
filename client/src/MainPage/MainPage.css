@@ -1,18 +1,67 @@
 .main-container {
 	display: grid;
-	grid-template-columns: repeat(2, 1fr);
-	grid-template-rows: repeat(2, auto);
+	grid-template-columns: 1fr 3fr;
+	grid-template-rows: repeat(10, auto);
 	gap: 20px;
 	padding: 20px;
 }
 
-.grid-item {
+.profile {
 	background: #f9f9f9;
 	border: 1px solid #ddd;
 	padding: 20px;
 	border-radius: 8px;
+	grid-column-start: 1;
+	grid-column-end: 1;
+	grid-row-start: 1;
+	grid-row-end: 1;
 }
 
-.grid-item h2 {
+.profile h2 {
+	text-align: center;
+}
+
+.new-post {
+	background: #f9f9f9;
+	border: 1px solid #ddd;
+	padding: 20px;
+	border-radius: 8px;
+	grid-column-start: 2;
+	grid-column-end: 2;
+	grid-row-start: 1;
+	grid-row-end: 10;
+}
+
+.new-post h2 {
+	text-align: center;
+}
+
+.top-post {
+	background: #f9f9f9;
+	border: 1px solid #ddd;
+	padding: 20px;
+	border-radius: 8px;
+	grid-column-start: 1;
+	grid-column-end: 1;
+	grid-row-start: 3;
+	grid-row-end: 3;
+}
+
+.top-post h2 {
+	text-align: center;
+}
+
+.new-comment {
+	background: #f9f9f9;
+	border: 1px solid #ddd;
+	padding: 20px;
+	border-radius: 8px;
+	grid-column-start: 1;
+	grid-column-end: 1;
+	grid-row-start: 4;
+	grid-row-end: 4;
+}
+
+.new-comment h2 {
 	text-align: center;
 }

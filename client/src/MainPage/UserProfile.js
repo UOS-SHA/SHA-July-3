@@ -1,7 +1,7 @@
 import React from 'react';
 
-const UserProfile = ({ userID }) => {
-	if (!userID)
+const UserProfile = ({ userId }) => {
+	if (!userId)
 		return (
 			<div>
 			<h2>로그인이 필요합니다.</h2>

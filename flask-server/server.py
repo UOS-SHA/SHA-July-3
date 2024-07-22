@@ -21,6 +21,7 @@ def log(text):
 @app.route('/api/main')
 @jwt_required(optional=True)
 def default():
+    cursor = db.cursor()
     try:
         identity = get_jwt_identity()
     except:
@@ -36,7 +37,7 @@ def default():
     if identity:
         ret['logged_in_user_id'] = identity['id']
     
-    cursor.execute('SELECT user_id, title, creation_time, likes, id FROM posts ORDER BY id DESC LIMIT 10;')
+    cursor.execute('SELECT user_id, title, creation_time, likes, id FROM posts ORDER BY id DESC LIMIT 20;')
     posts = cursor.fetchall()
     for post in posts:
         cursor.execute(f'SELECT username FROM users WHERE id={post[0]};')
@@ -71,6 +72,7 @@ def default():
             'username': cursor.fetchone()
             })
 
+    db.commit()
     return ret, 200
 ##############################################################################################################
 
@@ -89,7 +91,7 @@ def return_user_view(user, posts, comments):
             'comments': []
             }
     for post in posts:
-        cursor.execute(f'SELECT id FROM posts WHERE title={post[0]};')
+        cursor.execute(f'SELECT id FROM posts WHERE title=\'{post[0]}\';')
         ret['posts'].append({
             'id': cursor.fetchone(),
             'title': post[0],
@@ -113,26 +115,29 @@ def get_posts_comments(user):
 
 @app.route('/api/user/username/<string:username>', methods=['GET'])
 def user_by_name(username):
+    cursor = db.cursor()
     cursor.execute(f'SELECT * FROM users WHERE username=\'{username}\';')
     user = cursor.fetchone()
     if not user:
         return {'error':'User not found.'}, 404
     posts, comments = get_posts_comments(user)
-    log(f'2{ret}')                                          #### DEBUG
+    db.commit()
     return return_user_view(user, posts, comments), 200
 
 @app.route('/api/user/id/<int:id>', methods=['GET'])
 def user_by_id(id):
+    cursor = db.cursor()
     cursor.execute(f'SELECT * FROM users WHERE id={id};')
     user = cursor.fetchone()
     if not user:
         return {'error':'User not found.'}, 404
     posts, comments = get_posts_comments(user)
-    log(f'3{ret}')                                          #### DEBUG
+    db.commit()
     return return_user_view(user, posts, comments), 200
 
-@app.route('/api/signup', methods=['POST'])
+@app.route('/api/user/add', methods=['POST'])
 def add_user():
+    cursor = db.cursor()
     data = request.get_json()
     log(f'User add request: {data}')
     if not data:
@@ -153,10 +158,12 @@ def add_user():
         cursor.execute(f'INSERT INTO users (username, school_year, pw_hash, additional_info) VALUES (\'{username}\', {school_year}, \'{pw_hash}\', \'{additional_info}\');')
 
     log('User add request was successful')
+    db.commit()
     return jsonify({'message':'User added successfully.'}), 201
 
 @app.route('/api/user/login', methods=['POST'])
 def login():
+    cursor = db.cursor()
     data = request.get_json()
     username = data.get('username')
     pw_hash = data.get('pw_hash')
@@ -164,6 +171,7 @@ def login():
     cursor.execute('SELECT pw_hash, id FROM users WHERE username=\'{username}\';')
     data = cursor.fetchone()
 
+    db.commit()
     if data and pw_hash == data[0]:
         return jsonify({'token': create_access_token(identity={'id': data[1]})}), 201
     return jsonify({'error':'Invalid credentials.'}), 401
@@ -181,8 +189,12 @@ def return_post_view(post, comments):
             'content': post[3],
             'creation_time': post[4],
             'likes': post[5],
+            'username': None,
             'comments': []
             }
+    cursor.execute(f'SELECT username FROM users WHERE id={post[1]};')
+    ret['username'] = cursor.fetchone()
+
     for comment in comments:
         cursor.execute(f'SELECT username FROM users WHERE id={comment[0]};')
         ret['comments'].append({
@@ -195,19 +207,22 @@ def return_post_view(post, comments):
     
 def get_comments(post):
     cursor.execute(f'SELECT user_id, content, created_at FROM comments WHERE post_id={post[0]} ORDER BY id;')
+    db.commit()
     return cursor.fetchall()
 
 @app.route('/api/post/<int:post_id>', methods=['GET'])
 def post(post_id):
+    cursor = db.cursor()
     cursor.execute(f'SELECT * FROM posts WHERE id={post_id};')
     post = cursor.fetchone()
     if not post:
         return jsonify({'error':'Post not found.'}), 404
-    log(f'4{ret}')                                          #### DEBUG
+    db.commit()
     return return_post_view(post, get_comments(post)), 200
 
 @app.route('/api/post/add', methods=['POST'])
 def add_post():
+    cursor = db.cursor()
     data = request.get_json()
     print(f'Post add request: {data}')
     if not data:
@@ -217,6 +232,7 @@ def add_post():
     title = data.get('title')
     content = data.get('content')
 
+    db.commit()
     if not (user_id and title and content):
         return jsonify({'error':'Missing post data.'}), 400
     cursor.execute(f'INSERT INTO posts (user_id, title, content) VALUES ({user_id}, \'{title}\', \'{content}\');')

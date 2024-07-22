@@ -32,20 +32,24 @@ const MainPage = () => {
 	else
 		return (
 			<div className="main-container">
-			<div className="grid-item">
+			<div className="profile">
 			<h2>계정</h2>
+			<hr />
 			<UserProfile userId={data.logged_in_user_id} />
 			</div>
-			<div className="grid-item">
+			<div className="new-post">
 			<h2>새 글</h2>
+			<hr />
 			<NewPosts posts={data.new_posts} />
 			</div>
-			<div className="grid-item">
+			<div className="top-post">
 			<h2>인기 글</h2>
+			<hr />
 			<TopPosts posts={data.top_posts} />
 			</div>
-			<div className="grid-item">
+			<div className="new-comment">
 			<h2>새 댓글</h2>
+			<hr />
 			<RecentComments comments={data.recent_comments} />
 			</div>
 			</div>
